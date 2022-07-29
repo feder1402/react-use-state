@@ -1,70 +1,101 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+These are my “speaker notes” for my presentation during the Front-End Dev Guild monthly meeting. The recording can be found here.
+I wrote these notes as part of my preparation for the presentation. I’m sharing them in case someone finds them useful, but I haven’t edited them in any way to make them more readable.
 
-## Available Scripts
+# What we will talk about today
+With the introduction of hooks in version 16.8, React introduced a nicer-looking and cleaner mechanism to handle state and side effects using functional components instead of classes  
+Although I strongly believe hooks are usually overused as it is a best practice to separate the View from the application logic, that is a topic for another time. Today, I would like to talk about useState and specially, discuss how it works internally  
+The goal is not to get into all the details and intricacies of the actual implementation but to develop a mental model for the overall mechanism React uses to make useState works  
+This is crucial as, unfortunately, we need to know to a certain level how React works as having the wrong model causes us to misunderstand how React works and therefore introduce bugs.
 
-In the project directory, you can run:
+# Our approach to learning how useState works
+One way to understand how a software feature works is to go over the code - i.e., looking at the solution. This is certainly a good and valid approach that can give us a deep and detailed understanding of how it works.
+However, today I'll like to take an alternative approach and focus instead on implementing useState from scratch and come up with our own solutions instead of studying an existing one. This would help us get a better perspective on the issues and constraints the React faced during their implementation so we can better understand why they did things the way they did it  
 
-### `npm start`
+This would us help to understand why, for example:  
+•	React has the rules it has for hooks (see Rules of Hooks).
+•	Changes in the state don't happen immediately  
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The goal, again, is not a complete understanding of the implementation but to create the correct mental model for how useState works that would allow to use it effectively and without bugs  
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Our goal is not a complete and optimal implementation but something simple enough to be done quickly but also realistic enough to expose us to the constrains and decisions the React team encountered while implementing useState.
 
-### `npm test`
+If you find this approach useful, then we can try to do the same for other hooks, such as useEffect, or for other critical React features such as re-renders, component lifecycle, etc.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Target sample React app that uses useState
+I'll use the example React's documentation uses to introduce hooks at as sample code that uses useState. 
+Our goal is to be able to run the sample code with our implementation of useState as if it would run if it were using the original one.
+Let me copy and paste the [code on React’s example](https://reactjs.org/docs/hooks-intro.html) to my editor
 
-### `npm run build`
+```js
+import React, { useState } from 'react';
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+function Example() {
+    // Declare a new state variable, which we'll call "count"
+    const [count, setCount] = useState(0);
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+    return (
+        <div>
+            <p>You clicked {count} times</p>
+            <button onClick={() => setCount(count + 1)}>
+                Click me
+            </button>
+        </div>
+    );
+}
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+export default Example
+```
+If I run it, I see the value of the counter and a button to increment it
 
-### `npm run eject`
+![](./docs/screen1.png)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+If we click on the button, the value increases by one
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+![](docs/screen2.png)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+This is working as expected. Now we want to do the same with our version…
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# Let’s pretend useState does not exist (yet)
+Suppose useState is not something React provided,
+maybe because we are still using an older version that doesn’t support hooks so we cannot import useState from React.
 
-## Learn More
+```js
+import React from 'react';
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+function Example() {
+    // Declare a new state variable, which we'll call "count"
+    const [count, setCount] = useState(0);
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+    return (
+        <div>
+            <p>You clicked {count} times</p>
+            <button onClick={() => setCount(count + 1)}>
+                Click me
+            </button>
+        </div>
+    );
+}
+```
+If we remove useState from the import and try to compile, we get an error:
 
-### Code Splitting
+![](docs/error.png)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+# Fixing the compile error
+Let's fix it by creating a skeleton useState function that:
+-	takes an initial value (or function, but we will ignore this for now)
+-	returns an array containing the current value and a function to set a new value
 
-### Analyzing the Bundle Size
+```js
+const useState = initialValue => {
+    const setValue = (newValue) => 
+           console.log('setValue called with', newValue) 
+    
+    return [initialValue, setValue]
+}
+```
+If we run it, we see that the page renders with the counter and button and there is no error; furthermore, 
+if we click on the button, we can see the notification in the console - but the value doesn't increment this time...
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+# Making it tick
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
