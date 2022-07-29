@@ -27,7 +27,9 @@ If you find this approach useful, then we can try to do the same for other hooks
 
 ## Target sample React app that uses useState
 I'll use the example React's documentation uses to introduce hooks at as sample code that uses useState. 
-Our goal is to be able to run the sample code with our implementation of useState as if it would run if it were using the original one.
+Our initial goal is to run this sample code with our implementation of useState and get the exact same behavior as
+if it were using the original one provided by React.
+
 Let me copy and paste the [code on React’s example](https://reactjs.org/docs/hooks-intro.html) to my editor
 
 ```js
