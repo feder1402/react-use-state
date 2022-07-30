@@ -25,7 +25,7 @@ Our goal is not a complete and optimal implementation but something simple enoug
 
 If you find this approach useful, then we can try to do the same for other hooks, such as useEffect, or for other critical React features such as re-renders, component lifecycle, etc.
 
-## Target sample React app that uses useState
+## Sample React app to test our useState
 I'll use the example React's documentation uses to introduce hooks at as sample code that uses useState. 
 Our initial goal is to run this sample code with our implementation of useState and get the exact same behavior as
 if it were using the original one provided by React.
@@ -103,4 +103,79 @@ If we run it, we see that the page renders with the counter and button and there
 if we click on the button, we can see the notification in the console - but the value doesn't increment this time...
 
 ## Making it tick
+To actually be able to increment the counter, we need a place to keep its value.
+
+Lets use a global variable 'state' set to undefined
+
+- On first render, when the state has not yet been set, useState will set the state to the initial value
+- Then, instead of initialValue, we will now return the state value
+- We will also modify setValue to update the state with the new value  
+
+```js
+let state
+
+const useState = initialValue => {
+    state ??= initialValue
+
+    const setValue = newValue => {
+        console.log('setVallue called with ', newValue)
+        state = newValue;
+    }
+
+    return [state, setValue]
+}
+```
+
+If we run the code again, it doesn't throw an error and, by looking at the messages in the console,
+we see setValue is called every time we click the button; however, sadly, the state value doesn't change
+
+This is because the component is not re-rendering so the value of count is the sam during the first render and every time we click the button newValue would be 1
+Also, even if the state changed, it would not show in the UI as it is not re-rendering with the new value
+
+To fix it, there are multiple ways to throw a re-render but here will just re-render the whole thing - this is not, obviously,
+a feasible solution but finding a better way would be the topic for a re-rendering talk
+
+  ```js
+      import {render} from './index'
+  ```
+
+and trigger a re-render in setValue, every time we update the state
+
+```js
+    const setValue = newValue => {
+        console.log('setVallue called with ', newValue)
+        state = newValue;
+        render()
+    }
+```
+Note that this is not how React does it as setValue executions are delayed and possibly batched
+If we run it this time, then it will run correctly
+We have our implementation!
+
+Well, not really 
+
+    - What happens if we introduce additional pieces of state?
+      -  
+        ``` js
+                  function Example() {
+                      // Declare a new state variable, which we'll call "count"
+                      const [count, setCount] = useState(0);
+                      const [countMeToo, setCountMeToo] = useState(0);
+                  
+                      return (
+                          <div>
+                              <p>You clicked me {count} times</p>
+                              <button onClick={() => setCount(count + 1)}>
+                                  Click me
+                              </button>
+                              <p>You clicked me {countMeToo} times too</p>
+                              <button onClick={() => setCountMeToo(countMeToo + 1)}>
+                                  Click me too!
+                              </button>
+                          </div>
+                      );
+                  }
+        ```
+    - If we run this, we see that bot counters increment together!
+    - This is because we have a single state  
 

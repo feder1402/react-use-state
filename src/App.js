@@ -1,9 +1,16 @@
 import React from 'react';
 
+let state
+
 const useState = initialValue => {
-    const setValue = (newValue) => console.log('setValue called with', newValue) 
-    
-    return [initialValue, setValue]
+    state ??= initialValue
+
+    const setValue = newValue => {
+        console.log('setVallue called with ', newValue)
+        state = newValue;
+    }
+
+    return [state, setValue]
 }
 
 function Example() {
