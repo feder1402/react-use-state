@@ -5,11 +5,7 @@ import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
-export const render = () => root.render(
-    <React.StrictMode>
-        <App/>
-    </React.StrictMode>
-);
+export const render = () => root.render(<App/>);
 
 render();
 

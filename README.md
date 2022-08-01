@@ -15,8 +15,8 @@ This is crucial as, unfortunately, we need to know to a certain level how React 
 One way to understand how a software feature works is to go over the code - i.e., looking at the solution. This is certainly a good and valid approach that can give us a deep and detailed understanding of how it works.
 However, today I'll like to take an alternative approach and focus instead on implementing useState from scratch and come up with our own solutions instead of studying an existing one. This would help us get a better perspective on the issues and constraints the React faced during their implementation so we can better understand why they did things the way they did it  
 
-This would us help to understand why, for example:  
-•	React has the rules it has for hooks (see Rules of Hooks).
+This would us help to understand, for example, why:  
+•	React has the rules it has for hooks (see [Rules of Hooks](https://reactjs.org/docs/hooks-rules.html)).
 •	Changes in the state don't happen immediately  
 
 The goal, again, is not a complete understanding of the implementation but to create the correct mental model for how useState works that would allow to use it effectively and without bugs  
@@ -133,49 +133,141 @@ This is because the component is not re-rendering so the value of count is the s
 Also, even if the state changed, it would not show in the UI as it is not re-rendering with the new value
 
 To fix it, there are multiple ways to throw a re-render but here will just re-render the whole thing - this is not, obviously,
-a feasible solution but finding a better way would be the topic for a re-rendering talk
-
-  ```js
-      import {render} from './index'
-  ```
-
-and trigger a re-render in setValue, every time we update the state
+a feasible solution but finding a better way would be the topic for a re-rendering talk.
 
 ```js
-    const setValue = newValue => {
-        console.log('setVallue called with ', newValue)
-        state = newValue;
-        render()
-    }
+// index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
+export const render = () => root.render(<App/>);
+
+render();
+```
+
+  ```js
+// App.js
+import {render} from './index';
+
+...
+
+const useState = initialValue => {
+  ...
+
+  const setValue = newValue => {
+    console.log('setVallue called with ', newValue)
+    state = newValue;
+    // Trigger a re-render every tine we make a change
+    render()
+  }
+}
 ```
 Note that this is not how React does it as setValue executions are delayed and possibly batched
 If we run it this time, then it will run correctly
 We have our implementation!
 
-Well, not really 
+# Make it a double
+Well, not really. What happens if we introduce additional pieces of state we want to track, lets say, another counter?
 
-    - What happens if we introduce additional pieces of state?
-      -  
-        ``` js
-                  function Example() {
-                      // Declare a new state variable, which we'll call "count"
-                      const [count, setCount] = useState(0);
-                      const [countMeToo, setCountMeToo] = useState(0);
-                  
-                      return (
-                          <div>
-                              <p>You clicked me {count} times</p>
-                              <button onClick={() => setCount(count + 1)}>
-                                  Click me
-                              </button>
-                              <p>You clicked me {countMeToo} times too</p>
-                              <button onClick={() => setCountMeToo(countMeToo + 1)}>
-                                  Click me too!
-                              </button>
-                          </div>
-                      );
-                  }
-        ```
-    - If we run this, we see that bot counters increment together!
-    - This is because we have a single state  
+Incidentally, the reason why React useState returns an array and not an object with the value and the setter is to simplify destructuring the returned value and setValue
+when we have multiple instances if useState
 
+To fix this, we could use an object to store the state and 'name' every state 'count' and 'countMeToo' but this is not what React does. 
+Instead, React uses an array and stores each individual state piece in its own item in the array.
+
+So, we will rename _state_ to _states_ and make it an array. 
+
+To keep track of which piece of state we are currently working on, we will use _stateIndex_, an index that will be:
+- set to  an initial value of 0 
+- incremented by 1 each time useState is called
+- reset to 0 every time we re-render; in particular, after we call render()
+on setValue
+
+```js
+import React from 'react';
+import {render} from './index';
+
+let states = []
+let stateIndex = 0
+
+const useState = initialValue => {
+    const selfIndex = stateIndex
+
+    states[selfIndex] ??= initialValue
+
+    const setValue = newValue => {
+        console.log('setVallue ', selfIndex, ' called with ', newValue)
+        states[selfIndex] = newValue;
+        stateIndex = 0
+        render()
+    }
+
+    stateIndex++
+
+    return [ states[selfIndex], setValue]
+}
+
+function Example() {
+    const [count, setCount] = useState(0);
+    const [countMeToo, setCountMeToo] = useState(0);
+
+    return (
+        <div>
+            <p>You clicked me {count} times</p>
+            <button onClick={() => setCount(count + 1)}>
+                Click me
+            </button>
+            <p>You clicked me {countMeToo} times too</p>
+            <button onClick={() => setCountMeToo(countMeToo + 1)}>
+                Click me too!
+            </button>
+        </div>
+    );
+}
+
+export default Example
+```
+Notice a couple of things:
+- There is some closure magic going on inside useState as we need to freeze the value of stateIndex in a closure so setValue will use the frozen, not the current value of stateIndex
+- To keep track which index in the array corresponds to which piece of state correctly, React needs to ensure that the useState hooks are always called in the same order. 
+Enforcing this order is what the [rules of hooks](https://reactjs.org/docs/hooks-rules.html) are all about
+
+# Parting Words
+This  is a simplified and incomplete version that is missing some core features such as
+- This implementation works for multiple useStates inside a component instance but not for multiple instances of the same component.
+React keeps the state for each instance instead of using a variable at the modue level like we did.
+- We reset the value of stateIndex to 0 every time we trigger a re-render inside setValue; However, there are other scenarios 
+where a re-render pf pur component might be triggered, for example, whenever a parent component is rendered. To solve this issue, we would need to know
+every time a re-render happens, not only the ones we trigger. 
+  - One simple solution would be to set stateIndex to 0 at the beggining of the component function before any of theuseState calls but that would break the encapsulation of the useState logic.
+  - We could also wrap our component inside a High Orer Component that handles the state
+  - If we were React, we could integrate our implementation of useState with React handling of a component re-render 
+- Our implementation executes setValue immediately and calls render() for every change. React, instead, tries to minimize the 
+number of re-renders and might batch multiple changes to execute them together. 
+- We allow to pass an initial value to useState but React allows also to pass a function. This should be trivial to implement so I encourage you to try to do it
+- etc. (pick your favorite missing feature)
+
+Despite the obvious limitations of our implementation, however, I hope what we did so far helped you get a better understanding of how hooks work and why it has the rules it has
+
+---
+# Appendix - Why does useState return an array instead of an object?
+React useState returns an array and not an object with the value and the setter is to simplify destructuring them into their own properties:
+
+If useState returned an object, we would need to rename value and setValue
+
+```js
+    const {value: count, setValue: setCount} = useState(0);
+    const {value: countMeToo, setValue: setCountMeToo} = useState(0);
+```
+
+Versus just deconstructing the returned array into the properties we want:
+
+```js
+    // Using an arrau
+    const [count, setCount] = useState(0);
+    const [countMeToo, setCountMeToo] = useState(0);
+```

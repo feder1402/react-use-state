@@ -1,27 +1,39 @@
 import React from 'react';
+import {render} from './index';
 
-let state
+let states = []
+let stateIndex = 0
 
 const useState = initialValue => {
-    state ??= initialValue
+    const selfIndex = stateIndex
+
+    states[selfIndex] ??= initialValue
 
     const setValue = newValue => {
-        console.log('setVallue called with ', newValue)
-        state = newValue;
+        console.log('setVallue ', selfIndex, ' called with ', newValue)
+        states[selfIndex] = newValue;
+        stateIndex = 0
+        render()
     }
 
-    return [state, setValue]
+    stateIndex++
+
+    return [ states[selfIndex], setValue]
 }
 
 function Example() {
-    // Declare a new state variable, which we'll call "count"
     const [count, setCount] = useState(0);
+    const [countMeToo, setCountMeToo] = useState(0);
 
     return (
         <div>
-            <p>You clicked {count} times</p>
+            <p>You clicked me {count} times</p>
             <button onClick={() => setCount(count + 1)}>
                 Click me
+            </button>
+            <p>You clicked me {countMeToo} times too</p>
+            <button onClick={() => setCountMeToo(countMeToo + 1)}>
+                Click me too!
             </button>
         </div>
     );
