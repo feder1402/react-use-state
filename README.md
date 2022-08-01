@@ -192,8 +192,9 @@ const useState = initialValue => {
 ---
 **Aside**
 
-Note that this is not how React does it as this triggers a re-render immediately and every time a state value is changed. 
-Instead, React might delay and batch multiple changes to avoid costly re-renders.
+    Note that this is not how React does it as this triggers a re-render immediately and every time a state value is changed. 
+    Instead, React might delay and batch multiple changes to avoid costly re-renders.
+
 ---
 If we run it this time, then it will run correctly
 We have our implementation!
